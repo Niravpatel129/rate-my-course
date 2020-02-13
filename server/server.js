@@ -3,17 +3,29 @@ const port = 8080;
 
 var express = require("express");
 var passport = require("passport");
-var Strategy = require("passport-facebook").Strategy;
+var GoogleStrategy = require("passport-google-oauth").OAuthStrategy;
+var cors = require("cors");
 
+// Create a new Express application.
+var app = express();
+
+app.use(cors());
+
+// Use the GoogleStrategy within Passport.
+//   Strategies in passport require a `verify` function, which accept
+//   credentials (in this case, a token, tokenSecret, and Google profile), and
+//   invoke a callback with a user object.
 passport.use(
-  new Strategy(
+  new GoogleStrategy(
     {
-      clientID: process.env.FACEBOOK_CLIENT_ID,
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
-      callbackURL: "/return"
+      consumerKey: process.env.GOOGLE_CONSUMER_KEY,
+      consumerSecret: process.env.GOOGLE_CONSUMER_SECRET,
+      callbackURL: "http://www.example.com/auth/google/callback"
     },
-    function(accessToken, refreshToken, profile, cb) {
-      return cb(null, profile);
+    function(token, tokenSecret, profile, done) {
+      User.findOrCreate({ googleId: profile.id }, function(err, user) {
+        return done(err, user);
+      });
     }
   )
 );
@@ -26,9 +38,6 @@ passport.serializeUser(function(user, cb) {
 passport.deserializeUser(function(obj, cb) {
   cb(null, obj);
 });
-
-// Create a new Express application.
-var app = express();
 
 // middlewares which i don't fully understand lol but they are good to have
 app.use(require("morgan")("combined"));
